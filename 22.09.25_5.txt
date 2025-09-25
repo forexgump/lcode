@@ -1,0 +1,530 @@
+I'll provide efficient and pedagogical solutions for these 5 classic dynamic programming problems, with detailed explanations of the key algorithmic insights.I've created comprehensive solutions for these 5 classic dynamic programming problems. Here's a breakdown of the key algorithmic insights:
+
+## Problem Breakdown by DP Pattern:
+
+### **Classic DP Optimization Problems:**
+
+**1. Coin Change (322)**:
+- **Pattern**: Unbounded knapsack
+- **Key insight**: `dp[amount] = min(dp[amount - coin] + 1)` for all valid coins
+- **Bottom-up**: Build solutions from smaller amounts to target amount
+
+**2. Maximum Product Subarray (152)**:
+- **Pattern**: Modified Kadane's algorithm
+- **Key insight**: Track both maximum and minimum products (negatives can flip)
+- **Critical detail**: `max_prod = max(num, num*prev_max, num*prev_min)`
+
+### **Sequence DP Problems:**
+
+**3. Longest Increasing Subsequence (300)**:
+- **DP approach**: `dp[i] = max(dp[j] + 1)` where `j < i` and `nums[j] < nums[i]`
+- **Optimal approach**: Binary search + patience sorting for O(n log n)
+- **Key insight**: Maintain smallest tail for each possible LIS length
+
+**4. Longest Palindromic Substring (5)**:
+- **Expand around centers**: O(n²) time, O(1) space - most practical
+- **DP approach**: `dp[i][j] = (s[i] == s[j]) && dp[i+1][j-1]`
+- **Key insight**: Every palindrome has a center (character or between characters)
+
+### **Constraint Variation:**
+
+**5. House Robber II (213)**:
+- **Pattern**: Linear DP with circular constraint
+- **Key insight**: Split into two scenarios - rob first house OR rob last house
+- **Solution**: `max(rob_linear(nums[:-1]), rob_linear(nums[1:]))`
+
+## Most Algorithmically Unclear Parts Explained:
+
+1. **Maximum Product Subarray - Why track minimum?**
+   - Negative numbers can flip signs when multiplied
+   - A negative minimum becomes positive maximum when multiplied by negative
+   - Example: `nums = [2, -3, -1, 4]` → at index 2: `min_prod = -6`, `nums[2] = -1` → `new_max = (-6) * (-1) = 6`
+
+2. **LIS Binary Search - Patience Sorting Intuition:**
+   - `tails[i]` = smallest ending element of all increasing subsequences of length `i+1`
+   - When we see a new number, we either extend the longest subsequence or improve an existing one
+   - Like playing solitaire: place cards optimally to maximize future options
+
+3. **Longest Palindrome - Center Expansion Logic:**
+   - For palindrome of length L centered at position i: `start = i - (L-1)//2`
+   - Handle both odd-length (center at character) and even-length (center between characters)
+
+4. **House Robber II - Circular Constraint:**
+   - If we rob house 0, we cannot rob house n-1 → solve for houses [0...n-2]
+   - If we don't rob house 0, we can rob house n-1 → solve for houses [1...n-1]
+   - The circular constraint reduces to two linear subproblems
+
+5. **Coin Change - Why bottom-up is clearer:**
+   - We build solutions for smaller amounts first
+   - For each amount, we try all coins and take the minimum
+   - More intuitive than top-down memoization for this problem
+
+## Complexity Analysis:
+- **Coin Change**: O(amount × coins) time, O(amount) space
+- **Maximum Product**: O(n) time, O(1) space
+- **LIS**: O(n log n) time, O(n) space (binary search approach)
+- **Longest Palindrome**: O(n²) time, O(1) space (expand around centers)
+- **House Robber II**: O(n) time, O(1) space
+
+## Alternative Approaches Included:
+- LIS with actual sequence reconstruction
+- Longest Palindrome using 2D DP
+- Both show the trade-offs between space and clarity
+
+The test cases demonstrate various edge cases and the expected outputs. The solutions prioritize both efficiency and pedagogical clarity!
+# -------------------
+"""
+LeetCode Dynamic Programming Problems - Efficient and Pedagogical Solutions
+=========================================================================
+
+This file contains solutions for 5 classic DP problems with detailed explanations
+and multiple approaches for educational purposes.
+"""
+
+def coin_change(coins, amount):
+    """
+    322. Coin Change
+    
+    Problem: You are given an integer array coins representing coins of different denominations 
+    and an integer amount representing a total amount of money.
+    Return the fewest number of coins that you need to make up that amount.
+    If that amount cannot be made up by any combination of the coins, return -1.
+    
+    Key insights:
+    - Classic unbounded knapsack/coin change DP problem
+    - dp[i] = minimum coins needed to make amount i
+    - For each amount, try all possible coins and take minimum
+    - dp[amount] = min(dp[amount - coin] + 1) for all valid coins
+    - Bottom-up approach is more intuitive than top-down
+    """
+    
+    # dp[i] represents minimum coins needed to make amount i
+    dp = [float('inf')] * (amount + 1)
+    dp[0] = 0  # Base case: 0 coins needed to make amount 0
+    
+    # For each amount from 1 to target amount
+    for curr_amount in range(1, amount + 1):
+        # Try each coin
+        for coin in coins:
+            # If coin value <= current amount, we can use this coin
+            if coin <= curr_amount:
+                # Update minimum coins needed
+                # dp[curr_amount - coin] + 1 means:
+                # "coins needed for remaining amount" + "this coin"
+                dp[curr_amount] = min(dp[curr_amount], dp[curr_amount - coin] + 1)
+    
+    # If dp[amount] is still infinity, amount cannot be made
+    return dp[amount] if dp[amount] != float('inf') else -1
+
+
+def max_product(nums):
+    """
+    152. Maximum Product Subarray
+    
+    Problem: Given an integer array nums, find a contiguous non-empty subarray 
+    within the array that has the largest product, and return the product.
+    
+    Key insights:
+    - Similar to maximum subarray sum (Kadane's), but with products
+    - Key difference: negative numbers can become positive when multiplied by negative
+    - We need to track both maximum and minimum products ending at each position
+    - A negative minimum can become maximum when multiplied by a negative number
+    - At each position: max_prod = max(num, num*prev_max, num*prev_min)
+    """
+    
+    if not nums:
+        return 0
+    
+    # Track maximum and minimum products ending at current position
+    max_prod = nums[0]  # Maximum product ending at current position
+    min_prod = nums[0]  # Minimum product ending at current position (for negative numbers)
+    result = nums[0]    # Global maximum product
+    
+    for i in range(1, len(nums)):
+        num = nums[i]
+        
+        # Calculate new max and min products
+        # We consider: current number alone, current * prev_max, current * prev_min
+        candidates = [num, num * max_prod, num * min_prod]
+        
+        new_max = max(candidates)
+        new_min = min(candidates)
+        
+        # Update max_prod and min_prod for next iteration
+        max_prod = new_max
+        min_prod = new_min
+        
+        # Update global result
+        result = max(result, max_prod)
+    
+    return result
+
+
+def length_of_lis(nums):
+    """
+    300. Longest Increasing Subsequence
+    
+    Problem: Given an integer array nums, return the length of the longest 
+    strictly increasing subsequence.
+    
+    Multiple approaches:
+    1. DP approach: O(n²) time, O(n) space - more intuitive
+    2. Binary search + patience sorting: O(n log n) time, O(n) space - optimal
+    
+    Key insights for DP approach:
+    - dp[i] = length of longest increasing subsequence ending at index i
+    - For each i, check all previous elements j < i
+    - If nums[j] < nums[i], we can extend subsequence ending at j
+    """
+    
+    # Approach 1: Dynamic Programming - O(n²)
+    def dp_approach():
+        if not nums:
+            return 0
+        
+        n = len(nums)
+        # dp[i] = length of LIS ending at index i
+        dp = [1] * n  # Every single element forms LIS of length 1
+        
+        for i in range(1, n):
+            for j in range(i):
+                # If we can extend the subsequence ending at j
+                if nums[j] < nums[i]:
+                    dp[i] = max(dp[i], dp[j] + 1)
+        
+        return max(dp)
+    
+    # Approach 2: Binary Search + Patience Sorting - O(n log n)
+    def binary_search_approach():
+        """
+        Key insight: We maintain an array 'tails' where tails[i] is the smallest
+        ending element of all increasing subsequences of length i+1.
+        
+        For each number:
+        - If it's larger than all elements in tails, append it
+        - Otherwise, find the smallest element >= current number and replace it
+        
+        This is called "patience sorting" - like playing solitaire optimally
+        """
+        if not nums:
+            return 0
+        
+        tails = []
+        
+        for num in nums:
+            # Binary search to find the position to insert/replace
+            left, right = 0, len(tails)
+            while left < right:
+                mid = (left + right) // 2
+                if tails[mid] < num:
+                    left = mid + 1
+                else:
+                    right = mid
+            
+            # If left == len(tails), we found a new maximum, so append
+            if left == len(tails):
+                tails.append(num)
+            else:
+                # Replace the element at position 'left'
+                tails[left] = num
+        
+        return len(tails)
+    
+    # Return the optimal solution
+    return binary_search_approach()
+
+
+def longest_palindrome(s):
+    """
+    5. Longest Palindromic Substring
+    
+    Problem: Given a string s, return the longest palindromic substring in s.
+    
+    Multiple approaches:
+    1. Expand around centers: O(n²) time, O(1) space - most intuitive
+    2. Dynamic Programming: O(n²) time, O(n²) space - clear logic
+    3. Manacher's algorithm: O(n) time, O(n) space - optimal but complex
+    
+    Key insights for expand around centers:
+    - Every palindrome has a center (either character or between characters)
+    - For each possible center, expand outward while characters match
+    - Handle both odd-length (center is character) and even-length (center between chars)
+    """
+    
+    if not s:
+        return ""
+    
+    start = 0  # Starting index of longest palindrome found
+    max_len = 1  # Length of longest palindrome found
+    
+    def expand_around_center(left, right):
+        """Helper function to expand around a center and return length"""
+        while left >= 0 and right < len(s) and s[left] == s[right]:
+            left -= 1
+            right += 1
+        return right - left - 1  # Length of palindrome
+    
+    for i in range(len(s)):
+        # Check for odd-length palindromes (center is at i)
+        len1 = expand_around_center(i, i)
+        
+        # Check for even-length palindromes (center is between i and i+1)
+        len2 = expand_around_center(i, i + 1)
+        
+        # Take the longer palindrome
+        curr_max_len = max(len1, len2)
+        
+        # Update global maximum if we found a longer palindrome
+        if curr_max_len > max_len:
+            max_len = curr_max_len
+            # Calculate starting position
+            # For a palindrome of length curr_max_len centered at i,
+            # starting position is i - (curr_max_len - 1) // 2
+            start = i - (curr_max_len - 1) // 2
+    
+    return s[start:start + max_len]
+
+
+def rob_circular(nums):
+    """
+    213. House Robber II
+    
+    Problem: You are a robber planning to rob houses along a street. 
+    Each house has money stashed. Adjacent houses have security systems - 
+    you cannot rob two adjacent houses. The houses are arranged in a circle,
+    so the first and last houses are adjacent.
+    Return the maximum amount of money you can rob.
+    
+    Key insights:
+    - This is House Robber I with circular constraint
+    - If we rob first house, we cannot rob last house
+    - If we rob last house, we cannot rob first house
+    - Solution: run House Robber I twice:
+      1. Include first house, exclude last house (nums[0:n-1])
+      2. Exclude first house, include last house (nums[1:n])
+    - Take maximum of both scenarios
+    """
+    
+    if not nums:
+        return 0
+    if len(nums) == 1:
+        return nums[0]
+    if len(nums) == 2:
+        return max(nums[0], nums[1])
+    
+    def rob_linear(houses):
+        """Helper function: House Robber I solution"""
+        if not houses:
+            return 0
+        if len(houses) == 1:
+            return houses[0]
+        
+        prev2 = houses[0]  # Max money up to house i-2
+        prev1 = max(houses[0], houses[1])  # Max money up to house i-1
+        
+        for i in range(2, len(houses)):
+            current = max(houses[i] + prev2, prev1)
+            prev2 = prev1
+            prev1 = current
+        
+        return prev1
+    
+    # Scenario 1: Rob first house, cannot rob last house
+    # Consider houses from index 0 to n-2
+    scenario1 = rob_linear(nums[:-1])
+    
+    # Scenario 2: Don't rob first house, can rob last house
+    # Consider houses from index 1 to n-1
+    scenario2 = rob_linear(nums[1:])
+    
+    # Return maximum of both scenarios
+    return max(scenario1, scenario2)
+
+
+# Alternative implementations for educational purposes
+
+def longest_palindrome_dp(s):
+    """
+    Alternative solution for Longest Palindromic Substring using DP
+    Time: O(n²), Space: O(n²)
+    
+    More intuitive but uses more space than expand around centers
+    """
+    if not s:
+        return ""
+    
+    n = len(s)
+    # dp[i][j] = True if substring s[i:j+1] is palindrome
+    dp = [[False] * n for _ in range(n)]
+    
+    start = 0  # Starting index of longest palindrome
+    max_len = 1  # Length of longest palindrome
+    
+    # Every single character is palindrome
+    for i in range(n):
+        dp[i][i] = True
+    
+    # Check for palindromes of length 2
+    for i in range(n - 1):
+        if s[i] == s[i + 1]:
+            dp[i][i + 1] = True
+            start = i
+            max_len = 2
+    
+    # Check for palindromes of length 3 and more
+    for length in range(3, n + 1):
+        for i in range(n - length + 1):
+            j = i + length - 1
+            
+            # Check if current substring is palindrome
+            if s[i] == s[j] and dp[i + 1][j - 1]:
+                dp[i][j] = True
+                start = i
+                max_len = length
+    
+    return s[start:start + max_len]
+
+
+def length_of_lis_with_sequence(nums):
+    """
+    Extension: Return the actual LIS, not just its length
+    Useful for understanding the DP transition
+    """
+    if not nums:
+        return []
+    
+    n = len(nums)
+    dp = [1] * n  # Length of LIS ending at each index
+    parent = [-1] * n  # To reconstruct the sequence
+    
+    for i in range(1, n):
+        for j in range(i):
+            if nums[j] < nums[i] and dp[j] + 1 > dp[i]:
+                dp[i] = dp[j] + 1
+                parent[i] = j
+    
+    # Find the index with maximum LIS length
+    max_length = max(dp)
+    max_index = dp.index(max_length)
+    
+    # Reconstruct the LIS
+    lis = []
+    current = max_index
+    while current != -1:
+        lis.append(nums[current])
+        current = parent[current]
+    
+    lis.reverse()
+    return lis
+
+
+# Test cases for all problems
+def run_tests():
+    print("="*70)
+    print("TESTING ALL DYNAMIC PROGRAMMING SOLUTIONS")
+    print("="*70)
+    
+    # Test Coin Change
+    print("\n1. Coin Change (Problem 322):")
+    print("Input: coins = [1,3,4], amount = 6")
+    result = coin_change([1,3,4], 6)
+    print(f"Output: {result}")
+    print("Expected: 2 (two coins: 3 + 3)")
+    
+    print("\nInput: coins = [2], amount = 3")
+    result = coin_change([2], 3)
+    print(f"Output: {result}")
+    print("Expected: -1 (impossible to make amount 3)")
+    
+    print("\nInput: coins = [1], amount = 0")
+    result = coin_change([1], 0)
+    print(f"Output: {result}")
+    print("Expected: 0")
+    
+    # Test Maximum Product Subarray
+    print("\n2. Maximum Product Subarray (Problem 152):")
+    print("Input: nums = [2,3,-2,4]")
+    result = max_product([2,3,-2,4])
+    print(f"Output: {result}")
+    print("Expected: 6 (subarray [2,3])")
+    
+    print("\nInput: nums = [-2,0,-1]")
+    result = max_product([-2,0,-1])
+    print(f"Output: {result}")
+    print("Expected: 0")
+    
+    print("\nInput: nums = [-2,3,-4]")
+    result = max_product([-2,3,-4])
+    print(f"Output: {result}")
+    print("Expected: 24 (entire array: -2 * 3 * -4)")
+    
+    # Test Longest Increasing Subsequence
+    print("\n3. Longest Increasing Subsequence (Problem 300):")
+    print("Input: nums = [10,9,2,5,3,7,101,18]")
+    result = length_of_lis([10,9,2,5,3,7,101,18])
+    print(f"Output: {result}")
+    print("Expected: 4 (subsequence [2,3,7,18] or [2,3,7,101])")
+    
+    print("\nInput: nums = [0,1,0,3,2,3]")
+    result = length_of_lis([0,1,0,3,2,3])
+    print(f"Output: {result}")
+    print("Expected: 4 (subsequence [0,1,2,3])")
+    
+    print("\nInput: nums = [7,7,7,7,7,7,7]")
+    result = length_of_lis([7,7,7,7,7,7,7])
+    print(f"Output: {result}")
+    print("Expected: 1")
+    
+    # Show actual LIS sequence
+    print("\nActual LIS for [10,9,2,5,3,7,101,18]:")
+    lis_sequence = length_of_lis_with_sequence([10,9,2,5,3,7,101,18])
+    print(f"LIS: {lis_sequence}")
+    
+    # Test Longest Palindromic Substring
+    print("\n4. Longest Palindromic Substring (Problem 5):")
+    print("Input: s = 'babad'")
+    result = longest_palindrome("babad")
+    print(f"Output: '{result}'")
+    print("Expected: 'bab' or 'aba'")
+    
+    print("\nInput: s = 'cbbd'")
+    result = longest_palindrome("cbbd")
+    print(f"Output: '{result}'")
+    print("Expected: 'bb'")
+    
+    print("\nInput: s = 'raceacar'")
+    result = longest_palindrome("raceacar")
+    print(f"Output: '{result}'")
+    print("Expected: 'raceacar'")
+    
+    # Test DP approach
+    print("\nDP approach for 'babad':")
+    result_dp = longest_palindrome_dp("babad")
+    print(f"Output: '{result_dp}'")
+    print("Expected: Same result with different algorithm")
+    
+    # Test House Robber II
+    print("\n5. House Robber II (Problem 213):")
+    print("Input: nums = [2,3,2]")
+    result = rob_circular([2,3,2])
+    print(f"Output: {result}")
+    print("Expected: 3 (rob house 1 only)")
+    
+    print("\nInput: nums = [1,2,3,1]")
+    result = rob_circular([1,2,3,1])
+    print(f"Output: {result}")
+    print("Expected: 4 (rob houses 0 and 2, or just house 2)")
+    
+    print("\nInput: nums = [1,2,3]")
+    result = rob_circular([1,2,3])
+    print(f"Output: {result}")
+    print("Expected: 3 (rob house 2)")
+    
+    print("\nInput: nums = [5]")
+    result = rob_circular([5])
+    print(f"Output: {result}")
+    print("Expected: 5")
+
+
+if __name__ == "__main__":
+    run_tests()
