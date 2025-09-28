@@ -1,0 +1,527 @@
+I'll provide efficient and pedagogical solutions for these 5 classic dynamic programming problems, covering greedy optimization, string/array DP, and combinatorial counting patterns.I've created comprehensive solutions for these 5 advanced dynamic programming problems. Here's a breakdown of the key algorithmic insights and patterns:
+
+## Problem Breakdown by DP Pattern:
+
+### **Optimization vs Feasibility:**
+
+**1. Jump Game (55)**:
+- **Greedy insight**: Track farthest reachable position - O(n) time, O(1) space
+- **DP alternative**: `dp[i] = true` if position i is reachable - O(n²) time
+- **Key insight**: Greedy works because we only care about feasibility, not optimization
+
+### **String/Array Partitioning DP:**
+
+**2. Word Break (139)**:
+- **Pattern**: `dp[i] = any(dp[j] and s[j:i] in dict)` for all j < i
+- **Key optimization**: Convert dictionary to set for O(1) lookup
+- **Early termination**: Break once we find one valid segmentation
+
+### **Combinatorial Counting DP:**
+
+**3. Combination Sum IV (377)**:
+- **Pattern**: `dp[target] = sum(dp[target - num])` for all valid nums
+- **Key insight**: This is actually counting permutations (order matters), not combinations
+- **Similar to**: Coin change, but counting ways instead of finding minimum
+
+**4. Decode Ways (91)**:
+- **Pattern**: `dp[i] = dp[i-1] + dp[i-2]` (like Fibonacci with constraints)
+- **Key constraints**: Single digit valid if ≠ '0', two digits valid if 10 ≤ value ≤ 26
+- **Edge cases**: Leading zeros, invalid two-digit combinations
+
+### **Grid Path Counting:**
+
+**5. Unique Paths (62)**:
+- **Pattern**: `dp[i][j] = dp[i-1][j] + dp[i][j-1]`
+- **Space optimization**: Only need previous row - O(n) space
+- **Mathematical insight**: This is combinations C(m+n-2, m-1)
+
+## Most Algorithmically Unclear Parts Explained:
+
+1. **Jump Game - Why greedy works:**
+   - We only need to know if the end is reachable, not the optimal path
+   - If we can reach position i, and from i we can reach i+nums[i], then farthest reachable is max(current_farthest, i+nums[i])
+   - If current position > farthest reachable, we're stuck
+
+2. **Word Break - DP transition:**
+   - `dp[i]` means "can we segment s[0:i] using dictionary words?"
+   - For each ending position i, try all possible starting positions j
+   - If `dp[j]` is true AND `s[j:i]` is in dictionary, then `dp[i]` is true
+
+3. **Combination Sum IV - Order matters:**
+   - Unlike traditional combination problems, [1,2,3] and [3,2,1] are different
+   - This makes it a permutation counting problem
+   - For each target, we try all numbers and sum the ways from remaining targets
+
+4. **Decode Ways - Fibonacci with constraints:**
+   - Similar to climbing stairs, but with validity constraints
+   - Single digit path: valid if current digit ≠ '0'
+   - Two digit path: valid if 10 ≤ two_digit_value ≤ 26
+   - Handle edge cases: "06" (invalid), "10" (valid), "30" (partially valid)
+
+5. **Unique Paths - Mathematical equivalence:**
+   - To reach (m-1,n-1) from (0,0): need (m-1) down + (n-1) right moves
+   - Total moves = m+n-2, choose positions for (m-1) down moves
+   - Answer = C(m+n-2, m-1) = (m+n-2)! / ((m-1)!(n-1)!)
+
+## Key DP Patterns Demonstrated:
+
+- **Decision DP**: Jump Game (greedy optimization)
+- **Partition DP**: Word Break (string segmentation)
+- **Counting DP**: Combination Sum IV, Decode Ways
+- **Path Counting**: Unique Paths
+- **Constraint Handling**: Decode Ways (digit constraints)
+
+## Complexity Analysis:
+- **Jump Game**: O(n) time, O(1) space (greedy)
+- **Word Break**: O(n² × k) time, O(n) space (k = avg word length)
+- **Combination Sum IV**: O(target × nums) time, O(target) space
+- **Decode Ways**: O(n) time, O(n) space
+- **Unique Paths**: O(mn) time, O(n) space (optimized)
+
+## Extensions Included:
+- Word Break with reconstruction (shows actual segmentation)
+- Decode Ways with step-by-step explanation
+- Jump Game II (minimum jumps variant)
+- Mathematical verification for Unique Paths
+
+The solutions demonstrate the progression from basic DP to advanced patterns, showing both optimal implementations and educational alternatives!
+
+===================
+"""
+LeetCode Advanced Dynamic Programming Problems - Efficient and Pedagogical Solutions
+==================================================================================
+
+This file contains solutions for 5 advanced DP problems covering different patterns:
+- Greedy vs DP optimization
+- String DP with dictionary lookup
+- Combinatorial counting DP
+- Digit DP with constraints
+- Grid path counting DP
+"""
+
+def can_jump(nums):
+    """
+    55. Jump Game
+    
+    Problem: You are given an integer array nums. You are initially positioned at 
+    the first index, and each element in the array represents your maximum jump length.
+    Return true if you can reach the last index, or false otherwise.
+    
+    Key insights:
+    - This can be solved with both DP and greedy approaches
+    - Greedy is more efficient: track the farthest position we can reach
+    - If at any point current position > farthest reachable, return false
+    - DP approach: dp[i] = true if we can reach position i
+    
+    The greedy approach is optimal and more intuitive for this problem.
+    """
+    
+    # Greedy approach - O(n) time, O(1) space
+    def greedy_approach():
+        farthest = 0  # Farthest position we can reach so far
+        
+        for i in range(len(nums)):
+            # If current position is beyond what we can reach, impossible
+            if i > farthest:
+                return False
+            
+            # Update farthest position we can reach from current position
+            farthest = max(farthest, i + nums[i])
+            
+            # Early termination: if we can already reach the end
+            if farthest >= len(nums) - 1:
+                return True
+        
+        return True
+    
+    # DP approach - O(n²) time, O(n) space (for educational comparison)
+    def dp_approach():
+        n = len(nums)
+        dp = [False] * n  # dp[i] = True if we can reach position i
+        dp[0] = True  # We start at position 0
+        
+        for i in range(1, n):
+            for j in range(i):
+                # If we can reach position j and can jump from j to i
+                if dp[j] and j + nums[j] >= i:
+                    dp[i] = True
+                    break  # Found one way to reach i, no need to check more
+        
+        return dp[n - 1]
+    
+    # Return the optimal greedy solution
+    return greedy_approach()
+
+
+def word_break(s, wordDict):
+    """
+    139. Word Break
+    
+    Problem: Given a string s and a dictionary of strings wordDict, 
+    return true if s can be segmented into a space-separated sequence 
+    of one or more dictionary words.
+    
+    Key insights:
+    - Classic string DP problem
+    - dp[i] = True if substring s[0:i] can be broken into dictionary words
+    - For each position i, check all possible previous positions j
+    - If dp[j] is True and s[j:i] is in dictionary, then dp[i] = True
+    - Convert wordDict to set for O(1) lookup
+    """
+    
+    word_set = set(wordDict)  # O(1) lookup instead of O(k) list search
+    n = len(s)
+    
+    # dp[i] = True if s[0:i] can be segmented using dictionary words
+    dp = [False] * (n + 1)
+    dp[0] = True  # Empty string can always be segmented
+    
+    for i in range(1, n + 1):
+        for j in range(i):
+            # If we can segment s[0:j] and s[j:i] is in dictionary
+            if dp[j] and s[j:i] in word_set:
+                dp[i] = True
+                break  # Found one way to segment s[0:i], no need to check more
+    
+    return dp[n]
+
+
+def combination_sum_4(nums, target):
+    """
+    377. Combination Sum IV
+    
+    Problem: Given an array of distinct integers nums and a target integer target, 
+    return the number of possible combinations that add up to target.
+    Note: Different sequences are counted as different combinations.
+    
+    Key insights:
+    - This is actually a permutation problem, not combination (order matters)
+    - dp[i] = number of ways to make sum i using given numbers
+    - For each target sum, try all numbers and add ways from remaining sum
+    - dp[target] = sum(dp[target - num]) for all valid nums
+    - Similar to coin change but counting ways instead of minimum coins
+    """
+    
+    # dp[i] = number of ways to make sum i
+    dp = [0] * (target + 1)
+    dp[0] = 1  # One way to make sum 0: use no numbers
+    
+    # For each possible sum from 1 to target
+    for curr_sum in range(1, target + 1):
+        # Try each number in nums
+        for num in nums:
+            # If current number can be used (doesn't exceed current sum)
+            if num <= curr_sum:
+                # Add the number of ways to make (curr_sum - num)
+                dp[curr_sum] += dp[curr_sum - num]
+    
+    return dp[target]
+
+
+def num_decodings(s):
+    """
+    91. Decode Ways
+    
+    Problem: A message containing letters from A-Z can be encoded into numbers:
+    'A' -> \"1\", 'B' -> \"2\", ..., 'Z' -> \"26\"
+    Given a string s containing only digits, return the number of ways to decode it.
+    
+    Key insights:
+    - Classic digit DP problem with constraints
+    - At each position, we can decode 1 digit or 2 digits (if valid)
+    - dp[i] = number of ways to decode s[0:i]
+    - Single digit: valid if s[i-1] != '0'
+    - Two digits: valid if 10 <= int(s[i-2:i]) <= 26
+    - Handle edge cases: leading zeros, invalid two-digit combinations
+    """
+    
+    if not s or s[0] == '0':
+        return 0
+    
+    n = len(s)
+    # dp[i] = number of ways to decode s[0:i]
+    dp = [0] * (n + 1)
+    dp[0] = 1  # Empty string has 1 way to decode
+    dp[1] = 1  # First character (already checked it's not '0')
+    
+    for i in range(2, n + 1):
+        # Check single digit decoding (current character)
+        if s[i-1] != '0':  # Single digit is valid if not '0'
+            dp[i] += dp[i-1]
+        
+        # Check two digit decoding (previous + current character)
+        two_digit = s[i-2:i]
+        if '10' <= two_digit <= '26':  # Two digits valid if between 10-26
+            dp[i] += dp[i-2]
+    
+    return dp[n]
+
+
+def unique_paths(m, n):
+    """
+    62. Unique Paths
+    
+    Problem: There is a robot on an m x n grid. The robot is initially located 
+    at the top-left corner (0, 0). The robot tries to move to the bottom-right 
+    corner (m-1, n-1). The robot can only move either down or right.
+    How many possible unique paths are there?
+    
+    Key insights:
+    - Classic 2D grid DP problem
+    - dp[i][j] = number of ways to reach cell (i, j)
+    - Can only come from top (i-1, j) or left (i, j-1)
+    - dp[i][j] = dp[i-1][j] + dp[i][j-1]
+    - Space optimization: only need previous row
+    - Mathematical insight: This is combinations C(m+n-2, m-1)
+    """
+    
+    # Approach 1: 2D DP - O(mn) space
+    def dp_2d():
+        dp = [[0] * n for _ in range(m)]
+        
+        # Initialize first row and first column
+        for i in range(m):
+            dp[i][0] = 1  # Only one way to reach any cell in first column
+        for j in range(n):
+            dp[0][j] = 1  # Only one way to reach any cell in first row
+        
+        # Fill the rest of the grid
+        for i in range(1, m):
+            for j in range(1, n):
+                dp[i][j] = dp[i-1][j] + dp[i][j-1]
+        
+        return dp[m-1][n-1]
+    
+    # Approach 2: Space-optimized DP - O(n) space
+    def dp_1d():
+        # Only keep track of current row
+        dp = [1] * n  # Initialize first row with all 1s
+        
+        for i in range(1, m):
+            for j in range(1, n):
+                # dp[j] = dp[j] (from above) + dp[j-1] (from left)
+                dp[j] += dp[j-1]
+        
+        return dp[n-1]
+    
+    # Approach 3: Mathematical solution - O(1) space
+    def combinatorial():
+        """
+        Mathematical insight: To reach (m-1, n-1) from (0, 0),
+        we need exactly (m-1) down moves and (n-1) right moves.
+        Total moves = m + n - 2
+        Ways to choose positions for down moves = C(m+n-2, m-1)
+        """
+        import math
+        return math.comb(m + n - 2, m - 1)
+    
+    # Return the space-optimized DP solution (good balance of efficiency and clarity)
+    return dp_1d()
+
+
+# Alternative implementations and extensions
+
+def word_break_with_reconstruction(s, wordDict):
+    """
+    Extension: Return one possible segmentation if word break is possible
+    Useful for understanding the DP transitions
+    """
+    word_set = set(wordDict)
+    n = len(s)
+    
+    # dp[i] = True if s[0:i] can be segmented
+    dp = [False] * (n + 1)
+    # parent[i] = starting position of last word in optimal segmentation of s[0:i]
+    parent = [-1] * (n + 1)
+    
+    dp[0] = True
+    
+    for i in range(1, n + 1):
+        for j in range(i):
+            if dp[j] and s[j:i] in word_set:
+                dp[i] = True
+                parent[i] = j
+                break
+    
+    if not dp[n]:
+        return None
+    
+    # Reconstruct the segmentation
+    result = []
+    i = n
+    while i > 0:
+        start = parent[i]
+        result.append(s[start:i])
+        i = start
+    
+    result.reverse()
+    return result
+
+
+def num_decodings_with_examples(s):
+    """
+    Enhanced version that shows the decoding logic more clearly
+    """
+    if not s or s[0] == '0':
+        return 0
+    
+    n = len(s)
+    dp = [0] * (n + 1)
+    dp[0] = 1
+    dp[1] = 1
+    
+    print(f\"Decoding string: {s}\")
+    print(f\"dp[0] = {dp[0]} (empty string)\")
+    print(f\"dp[1] = {dp[1]} ('{s[0]}' -> 1 way)\")
+    
+    for i in range(2, n + 1):
+        # Single digit
+        if s[i-1] != '0':
+            dp[i] += dp[i-1]
+            print(f\"Single digit '{s[i-1]}' at position {i}: +{dp[i-1]} ways\")
+        
+        # Two digits
+        two_digit = s[i-2:i]
+        if '10' <= two_digit <= '26':
+            dp[i] += dp[i-2]
+            print(f\"Two digits '{two_digit}' at position {i}: +{dp[i-2]} ways\")
+        
+        print(f\"dp[{i}] = {dp[i]} (ways to decode s[0:{i}] = '{s[:i]}')\")
+    
+    return dp[n]
+
+
+def jump_game_min_jumps(nums):
+    """
+    Extension: Return minimum number of jumps to reach the end (Jump Game II)
+    Shows the difference between possibility and optimization
+    """
+    if len(nums) <= 1:
+        return 0
+    
+    jumps = 0
+    current_end = 0  # End of current jump range
+    farthest = 0     # Farthest we can reach
+    
+    for i in range(len(nums) - 1):  # Don't need to jump from last position
+        farthest = max(farthest, i + nums[i])
+        
+        # If we've reached the end of current jump range
+        if i == current_end:
+            jumps += 1
+            current_end = farthest
+            
+            # If we can reach the end, no need to continue
+            if current_end >= len(nums) - 1:
+                break
+    
+    return jumps
+
+
+# Test cases for all problems
+def run_tests():
+    print(\"=\"*80)
+    print(\"TESTING ALL ADVANCED DYNAMIC PROGRAMMING SOLUTIONS\")
+    print(\"=\"*80)
+    
+    # Test Jump Game
+    print(\"\\n1. Jump Game (Problem 55):\")
+    print(\"Input: nums = [2,3,1,1,4]\")
+    result = can_jump([2,3,1,1,4])
+    print(f\"Output: {result}\")
+    print(\"Expected: True (jump 1 step from index 0 to 1, then 3 steps to the last index)\")
+    
+    print(\"\\nInput: nums = [3,2,1,0,4]\")
+    result = can_jump([3,2,1,0,4])
+    print(f\"Output: {result}\")
+    print(\"Expected: False (you will always arrive at index 3, max jump length is 0)\")
+    
+    # Show minimum jumps for comparison
+    print(\"\\nMinimum jumps for [2,3,1,1,4]:\")
+    min_jumps = jump_game_min_jumps([2,3,1,1,4])
+    print(f\"Minimum jumps: {min_jumps}\")
+    print(\"Expected: 2\")
+    
+    # Test Word Break
+    print(\"\\n2. Word Break (Problem 139):\")
+    print(\"Input: s = 'leetcode', wordDict = ['leet','code']\")
+    result = word_break(\"leetcode\", [\"leet\", \"code\"])
+    print(f\"Output: {result}\")
+    print(\"Expected: True ('leetcode' can be segmented as 'leet code')\")
+    
+    print(\"\\nInput: s = 'applepenapple', wordDict = ['apple','pen']\")
+    result = word_break(\"applepenapple\", [\"apple\", \"pen\"])
+    print(f\"Output: {result}\")
+    print(\"Expected: True ('applepenapple' can be segmented as 'apple pen apple')\")
+    
+    print(\"\\nInput: s = 'catsandog', wordDict = ['cats','dog','sand','and','cat']\")
+    result = word_break(\"catsandog\", [\"cats\", \"dog\", \"sand\", \"and\", \"cat\"])
+    print(f\"Output: {result}\")
+    print(\"Expected: False\")
+    
+    # Show reconstruction
+    print(\"\\nReconstruction for 'leetcode':\")
+    segmentation = word_break_with_reconstruction(\"leetcode\", [\"leet\", \"code\"])
+    print(f\"Segmentation: {segmentation}\")
+    
+    # Test Combination Sum IV
+    print(\"\\n3. Combination Sum IV (Problem 377):\")
+    print(\"Input: nums = [1,2,3], target = 4\")
+    result = combination_sum_4([1,2,3], 4)
+    print(f\"Output: {result}\")
+    print(\"Expected: 7\")
+    print(\"Combinations: (1,1,1,1), (1,1,2), (1,2,1), (1,3), (2,1,1), (2,2), (3,1)\")
+    
+    print(\"\\nInput: nums = [9], target = 3\")
+    result = combination_sum_4([9], 3)
+    print(f\"Output: {result}\")
+    print(\"Expected: 0\")
+    
+    # Test Decode Ways
+    print(\"\\n4. Decode Ways (Problem 91):\")
+    print(\"Input: s = '12'\")
+    result = num_decodings(\"12\")
+    print(f\"Output: {result}\")
+    print(\"Expected: 2 ('AB' (1 2) or 'L' (12))\")
+    
+    print(\"\\nInput: s = '226'\")
+    result = num_decodings(\"226\")
+    print(f\"Output: {result}\")
+    print(\"Expected: 3 ('BBF' (2 2 6), 'BZ' (2 26), 'VF' (22 6))\")
+    
+    print(\"\\nInput: s = '06'\")
+    result = num_decodings(\"06\")
+    print(f\"Output: {result}\")
+    print(\"Expected: 0 (cannot start with 0)\")
+    
+    # Show detailed decoding process
+    print(\"\\nDetailed decoding for '226':\")
+    num_decodings_with_examples(\"226\")
+    
+    # Test Unique Paths
+    print(\"\\n5. Unique Paths (Problem 62):\")
+    print(\"Input: m = 3, n = 7\")
+    result = unique_paths(3, 7)
+    print(f\"Output: {result}\")
+    print(\"Expected: 28\")
+    
+    print(\"\\nInput: m = 3, n = 2\")
+    result = unique_paths(3, 2)
+    print(f\"Output: {result}\")
+    print(\"Expected: 3\")
+    
+    print(\"\\nInput: m = 1, n = 1\")
+    result = unique_paths(1, 1)
+    print(f\"Output: {result}\")
+    print(\"Expected: 1\")
+    
+    # Mathematical verification
+    import math
+    print(\"\\nMathematical verification for m=3, n=7:\")
+    math_result = math.comb(3 + 7 - 2, 3 - 1)
+    print(f\"C(8, 2) = {math_result}\")
+    print(\"Expected: Same as DP result\")
+
+
+if __name__ == \"__main__\":
+    run_tests()
