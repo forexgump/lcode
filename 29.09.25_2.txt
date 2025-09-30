@@ -1,0 +1,404 @@
+# Comprehensive Solutions to 5 LeetCode Problems
+
+I'll provide clean, pedagogical solutions with detailed explanations for each problem.
+
+I've created comprehensive solutions for all 5 LeetCode problems with detailed explanations. Here's a summary of the approaches:
+
+## **Problem 309: Stock with Cooldown**
+- **Approach**: State machine DP with three states (hold, sold, rest)
+- **Key Insight**: Track maximum profit in each state and handle cooldown transitions
+- **Complexity**: O(n) time, O(1) space
+
+## **Problem 673: Number of LIS**
+- **Approach**: DP tracking both length and count
+- **Key Insight**: When extending sequences, update counts based on whether we found a longer sequence or another sequence of same length
+- **Complexity**: O(n²) time, O(n) space
+
+## **Problem 416: Partition Equal Subset Sum**
+- **Approach**: DP subset sum with set tracking
+- **Key Insight**: Convert to "can we find subset summing to total/2?"
+- **Complexity**: O(n × sum) time, O(sum) space
+
+## **Problem 698: Partition to K Subsets**
+- **Approach**: Backtracking with multiple optimizations
+- **Key Insight**: Sort descending, skip duplicates, prune early
+- **Complexity**: O(k × 2^n) worst case
+
+## **Problem 647: Palindromic Substrings**
+- **Approach**: Expand around center
+- **Key Insight**: 2n-1 possible centers (odd and even length palindromes)
+- **Complexity**: O(n²) time, O(1) space
+
+Each solution includes extensive comments explaining the algorithm, test cases with expected outputs, and is optimized for both clarity and efficiency. Run the code to see all test results! ✨
+====================
+
+"""
+LeetCode Problems: 309, 673, 416, 698, 647
+Efficient and Pedagogical Solutions
+"""
+
+# ==============================================================================
+# Problem 309: Best Time to Buy and Sell Stock with Cooldown
+# ==============================================================================
+"""
+Problem: You are given an array prices where prices[i] is the price of a stock 
+on the ith day. You can complete as many transactions as you like (buy one and 
+sell one share) with the following restrictions:
+- After you sell your stock, you cannot buy stock on the next day (cooldown 1 day)
+
+Find the maximum profit you can achieve.
+
+Example: prices = [1,2,3,0,2]
+Output: 3
+Explanation: Buy on day 0 (price=1), sell on day 1 (price=2), profit=1
+             Cooldown on day 2, buy on day 3 (price=0), sell on day 4 (price=2), profit=2
+             Total profit = 1 + 2 = 3
+"""
+
+def maxProfit_cooldown(prices):
+    """
+    Dynamic Programming approach with state machine.
+    
+    Three states:
+    - hold: currently holding a stock
+    - sold: just sold a stock (must cooldown next day)
+    - rest: resting (can buy or continue resting)
+    
+    Key insight: We track the maximum profit in each state at each day.
+    Transitions:
+    - hold[i] = max(hold[i-1], rest[i-1] - prices[i])  # keep holding or buy today
+    - sold[i] = hold[i-1] + prices[i]                   # sell today
+    - rest[i] = max(rest[i-1], sold[i-1])              # rest or finish cooldown
+    
+    Time: O(n), Space: O(1) - we only need previous state
+    """
+    if not prices:
+        return 0
+    
+    # Initialize states
+    hold = float('-inf')  # Can't hold on day 0 without buying
+    sold = float('-inf')  # Can't sell on day 0
+    rest = 0              # Start by resting with 0 profit
+    
+    for price in prices:
+        prev_hold, prev_sold, prev_rest = hold, sold, rest
+        
+        hold = max(prev_hold, prev_rest - price)  # Keep holding or buy
+        sold = prev_hold + price                   # Sell stock
+        rest = max(prev_rest, prev_sold)          # Rest or cooldown complete
+    
+    # At the end, we want to be in sold or rest state (not holding)
+    return max(sold, rest)
+
+
+# ==============================================================================
+# Problem 673: Number of Longest Increasing Subsequence
+# ==============================================================================
+"""
+Problem: Given an integer array nums, return the number of longest increasing 
+subsequences. A subsequence is a sequence derived from the array by deleting 
+some or no elements without changing the order of the remaining elements.
+
+Example: nums = [1,3,5,4,7]
+Output: 2
+Explanation: The two longest increasing subsequences are [1,3,4,7] and [1,3,5,7]
+"""
+
+def findNumberOfLIS(nums):
+    """
+    Dynamic Programming with length and count tracking.
+    
+    Key insight: For each position i, we track:
+    - lengths[i]: length of longest increasing subsequence ending at i
+    - counts[i]: number of such subsequences of that length
+    
+    For each i, look at all j < i where nums[j] < nums[i]:
+    - If lengths[j] + 1 > lengths[i]: found longer sequence, update both
+    - If lengths[j] + 1 == lengths[i]: found another sequence of same length, add count
+    
+    Time: O(n²), Space: O(n)
+    """
+    if not nums:
+        return 0
+    
+    n = len(nums)
+    lengths = [1] * n  # Length of LIS ending at index i
+    counts = [1] * n   # Number of LIS of that length ending at index i
+    
+    for i in range(n):
+        for j in range(i):
+            if nums[j] < nums[i]:
+                if lengths[j] + 1 > lengths[i]:
+                    # Found a longer subsequence
+                    lengths[i] = lengths[j] + 1
+                    counts[i] = counts[j]  # Inherit count from j
+                elif lengths[j] + 1 == lengths[i]:
+                    # Found another subsequence of same length
+                    counts[i] += counts[j]
+    
+    # Find the maximum length
+    max_len = max(lengths)
+    
+    # Sum counts for all positions with maximum length
+    return sum(c for l, c in zip(lengths, counts) if l == max_len)
+
+
+# ==============================================================================
+# Problem 416: Partition Equal Subset Sum
+# ==============================================================================
+"""
+Problem: Given an integer array nums, return true if you can partition the 
+array into two subsets such that the sum of elements in both subsets is equal.
+
+Example: nums = [1,5,11,5]
+Output: true
+Explanation: [1,5,5] and [11] both sum to 11
+"""
+
+def canPartition(nums):
+    """
+    Dynamic Programming - Subset Sum Problem.
+    
+    Key insight: If we can partition into two equal subsets, each subset must
+    sum to total_sum / 2. This becomes: "Can we find a subset that sums to target?"
+    
+    We use a DP set to track all possible sums we can achieve.
+    For each number, we can either include it or not, creating new possible sums.
+    
+    Optimization: Process from right to left to avoid using same element twice.
+    
+    Time: O(n * sum), Space: O(sum) where sum is total sum of array
+    """
+    total = sum(nums)
+    
+    # If total is odd, impossible to split evenly
+    if total % 2 != 0:
+        return False
+    
+    target = total // 2
+    
+    # DP set: all possible sums we can achieve
+    dp = {0}  # We can always achieve sum of 0 (empty subset)
+    
+    for num in nums:
+        # Create new sums by adding current number to existing sums
+        # Use list() to avoid modifying set while iterating
+        new_sums = set()
+        for s in dp:
+            new_sum = s + num
+            if new_sum == target:
+                return True
+            if new_sum < target:
+                new_sums.add(new_sum)
+        dp.update(new_sums)
+    
+    return target in dp
+
+
+# ==============================================================================
+# Problem 698: Partition to K Equal Sum Subsets
+# ==============================================================================
+"""
+Problem: Given an integer array nums and an integer k, return true if it's 
+possible to divide this array into k non-empty subsets whose sums are all equal.
+
+Example: nums = [4,3,2,3,5,2,1], k = 4
+Output: true
+Explanation: Can partition into [5], [1,4], [2,3], [2,3] - all sum to 5
+"""
+
+def canPartitionKSubsets(nums, k):
+    """
+    Backtracking with pruning optimizations.
+    
+    Key insights:
+    1. Each subset must sum to total_sum / k (target)
+    2. Sort in descending order - larger numbers constrain more, fail faster
+    3. Use bitmask or visited array to track used numbers
+    4. Try to fill k buckets to target sum
+    
+    Optimizations:
+    - If any number > target, impossible
+    - Start with largest numbers (fail fast)
+    - Skip duplicates in same recursive level
+    
+    Time: O(k * 2^n) worst case, Space: O(n) for recursion stack
+    """
+    total = sum(nums)
+    
+    if total % k != 0:
+        return False
+    
+    target = total // k
+    nums.sort(reverse=True)  # Process large numbers first
+    
+    # If largest number exceeds target, impossible
+    if nums[0] > target:
+        return False
+    
+    used = [False] * len(nums)
+    
+    def backtrack(bucket_idx, current_sum, start_idx):
+        """
+        bucket_idx: which bucket we're filling (0 to k-1)
+        current_sum: current sum in this bucket
+        start_idx: where to start searching in nums
+        """
+        # Base case: filled all k buckets successfully
+        if bucket_idx == k:
+            return True
+        
+        # Current bucket is full, move to next bucket
+        if current_sum == target:
+            return backtrack(bucket_idx + 1, 0, 0)
+        
+        # Try adding each unused number to current bucket
+        for i in range(start_idx, len(nums)):
+            if used[i]:
+                continue
+            
+            # Skip duplicates at same recursion level (critical optimization)
+            if i > start_idx and nums[i] == nums[i-1] and not used[i-1]:
+                continue
+            
+            # Pruning: skip if this number would exceed target
+            if current_sum + nums[i] > target:
+                continue
+            
+            # Try using this number
+            used[i] = True
+            if backtrack(bucket_idx, current_sum + nums[i], i + 1):
+                return True
+            used[i] = False
+        
+        return False
+    
+    return backtrack(0, 0, 0)
+
+
+# ==============================================================================
+# Problem 647: Palindromic Substrings
+# ==============================================================================
+"""
+Problem: Given a string s, return the number of palindromic substrings in it.
+A palindrome is a string that reads the same backward as forward.
+
+Example: s = "aaa"
+Output: 6
+Explanation: "a", "a", "a", "aa", "aa", "aaa"
+"""
+
+def countSubstrings(s):
+    """
+    Expand Around Center approach.
+    
+    Key insight: Every palindrome has a center. For a string of length n:
+    - There are n possible centers for odd-length palindromes (single char)
+    - There are n-1 possible centers for even-length palindromes (between chars)
+    - Total: 2n-1 possible centers
+    
+    For each center, expand outward while characters match.
+    
+    Time: O(n²) - n centers, each expands up to n times
+    Space: O(1)
+    """
+    def expand_around_center(left, right):
+        """Count palindromes by expanding from center."""
+        count = 0
+        while left >= 0 and right < len(s) and s[left] == s[right]:
+            count += 1
+            left -= 1
+            right += 1
+        return count
+    
+    total = 0
+    for i in range(len(s)):
+        # Odd-length palindromes (center is a single character)
+        total += expand_around_center(i, i)
+        
+        # Even-length palindromes (center is between two characters)
+        total += expand_around_center(i, i + 1)
+    
+    return total
+
+
+# ==============================================================================
+# TEST CASES
+# ==============================================================================
+
+def run_tests():
+    print("=" * 70)
+    print("Problem 309: Best Time to Buy and Sell Stock with Cooldown")
+    print("=" * 70)
+    test_cases_309 = [
+        ([1,2,3,0,2], 3),
+        ([1], 0),
+        ([1,2,4], 3),
+        ([2,1,2,0,1], 2),
+    ]
+    for prices, expected in test_cases_309:
+        result = maxProfit_cooldown(prices)
+        status = "✓" if result == expected else "✗"
+        print(f"{status} prices={prices} -> {result} (expected {expected})")
+    
+    print("\n" + "=" * 70)
+    print("Problem 673: Number of Longest Increasing Subsequence")
+    print("=" * 70)
+    test_cases_673 = [
+        ([1,3,5,4,7], 2),
+        ([2,2,2,2,2], 5),
+        ([1,2,4,3,5,4,7,2], 3),
+        ([1], 1),
+    ]
+    for nums, expected in test_cases_673:
+        result = findNumberOfLIS(nums)
+        status = "✓" if result == expected else "✗"
+        print(f"{status} nums={nums} -> {result} (expected {expected})")
+    
+    print("\n" + "=" * 70)
+    print("Problem 416: Partition Equal Subset Sum")
+    print("=" * 70)
+    test_cases_416 = [
+        ([1,5,11,5], True),
+        ([1,2,3,5], False),
+        ([1,2,5], False),
+        ([2,2,1,1], True),
+    ]
+    for nums, expected in test_cases_416:
+        result = canPartition(nums)
+        status = "✓" if result == expected else "✗"
+        print(f"{status} nums={nums} -> {result} (expected {expected})")
+    
+    print("\n" + "=" * 70)
+    print("Problem 698: Partition to K Equal Sum Subsets")
+    print("=" * 70)
+    test_cases_698 = [
+        ([4,3,2,3,5,2,1], 4, True),
+        ([1,2,3,4], 3, False),
+        ([2,2,2,2,3,4,5], 4, False),
+        ([4,4,6,2,3,8,10,2,10,7], 4, True),
+    ]
+    for nums, k, expected in test_cases_698:
+        result = canPartitionKSubsets(nums, k)
+        status = "✓" if result == expected else "✗"
+        print(f"{status} nums={nums}, k={k} -> {result} (expected {expected})")
+    
+    print("\n" + "=" * 70)
+    print("Problem 647: Palindromic Substrings")
+    print("=" * 70)
+    test_cases_647 = [
+        ("abc", 3),
+        ("aaa", 6),
+        ("racecar", 10),
+        ("a", 1),
+    ]
+    for s, expected in test_cases_647:
+        result = countSubstrings(s)
+        status = "✓" if result == expected else "✗"
+        print(f"{status} s='{s}' -> {result} (expected {expected})")
+    
+    print("\n" + "=" * 70)
+
+
+if __name__ == "__main__":
+    run_tests()
