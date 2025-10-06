@@ -1,0 +1,306 @@
+I'll provide efficient and pedagogical solutions for these three linked list problems.I've created comprehensive solutions for all three linked list problems with detailed explanations. Here are the key algorithmic insights for each:
+
+## **Problem 19: Remove Nth Node From End**
+- **Technique**: Two-pointer with one pass
+- **Key insight**: Keep fast pointer exactly n+1 steps ahead of slow. When fast reaches the end, slow will be right before the node to delete.
+
+## **Problem 142: Linked List Cycle II**
+- **Technique**: Floyd's Cycle Detection (Tortoise and Hare)
+- **Key insight**: The tricky part is finding WHERE the cycle starts. After detecting a cycle, reset one pointer to head and move both one step at a time—they'll meet at the cycle's start due to the mathematical relationship: F = nC - a (explained in comments).
+
+## **Problem 2: Add Two Numbers**
+- **Technique**: Simulation with carry tracking
+- **Key insight**: Lists are already reversed (least significant digit first), so we can add digit-by-digit like elementary school math. Don't forget to handle the final carry!
+
+All solutions include:
+- Time and space complexity analysis
+- Detailed comments on the algorithmically tricky parts
+- Multiple test cases covering edge cases
+- Helper functions to create and visualize linked lists
+
+Run the code to see all test outputs!
+
+class ListNode:
+    """Definition for singly-linked list node."""
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+
+
+# ============================================================================
+# Problem 19: Remove Nth Node From End of List
+# ============================================================================
+# Given the head of a linked list, remove the nth node from the end of the 
+# list and return its head.
+# Example: Input: head = [1,2,3,4,5], n = 2  =>  Output: [1,2,3,5]
+# ============================================================================
+
+def removeNthFromEnd(head, n):
+    """
+    Two-pointer approach (ONE PASS):
+    - Use a dummy node to handle edge cases (removing head)
+    - Fast pointer moves n steps ahead first
+    - Then both pointers move together until fast reaches the end
+    - When fast is at the end, slow is at the node BEFORE the one to remove
+    
+    Why this works:
+    If fast is n nodes ahead of slow, when fast reaches the end (None),
+    slow will be exactly n nodes from the end, which is the node before
+    the one we want to delete.
+    
+    Time: O(L) where L is list length - single pass
+    Space: O(1) - only pointers
+    """
+    dummy = ListNode(0, head)
+    fast = slow = dummy
+    
+    # Move fast pointer n+1 steps ahead
+    # +1 because we want slow to stop at the node BEFORE the target
+    for _ in range(n + 1):
+        fast = fast.next
+    
+    # Move both pointers until fast reaches the end
+    while fast:
+        fast = fast.next
+        slow = slow.next
+    
+    # Remove the nth node from end
+    slow.next = slow.next.next
+    
+    return dummy.next
+
+
+# ============================================================================
+# Problem 142: Linked List Cycle II
+# ============================================================================
+# Given the head of a linked list, return the node where the cycle begins.
+# If there is no cycle, return None.
+# Example: head = [3,2,0,-4], pos = 1 (cycle at node with value 2)
+# ============================================================================
+
+def detectCycle(head):
+    """
+    Floyd's Cycle Detection Algorithm (Tortoise and Hare):
+    
+    Phase 1: Detect if cycle exists
+    - Slow pointer moves 1 step, fast moves 2 steps
+    - If they meet, a cycle exists
+    
+    Phase 2: Find cycle start (THE TRICKY PART)
+    - Reset one pointer to head
+    - Move both pointers 1 step at a time
+    - They will meet at the cycle start
+    
+    Mathematical proof:
+    Let's say distance from head to cycle start = F
+    Distance from cycle start to meeting point = a
+    Cycle length = C
+    
+    When they meet:
+    - Slow traveled: F + a
+    - Fast traveled: F + a + nC (n = number of complete cycles)
+    - Since fast moves 2x speed: 2(F + a) = F + a + nC
+    - Simplifying: F + a = nC  =>  F = nC - a
+    
+    This means: distance from head to cycle start (F) equals
+    distance from meeting point back to cycle start (C - a), 
+    modulo the cycle length.
+    
+    Time: O(n), Space: O(1)
+    """
+    if not head or not head.next:
+        return None
+    
+    # Phase 1: Detect cycle
+    slow = fast = head
+    has_cycle = False
+    
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+        if slow == fast:
+            has_cycle = True
+            break
+    
+    if not has_cycle:
+        return None
+    
+    # Phase 2: Find cycle start
+    # Reset slow to head, keep fast at meeting point
+    slow = head
+    while slow != fast:
+        slow = slow.next
+        fast = fast.next
+    
+    return slow
+
+
+# ============================================================================
+# Problem 2: Add Two Numbers
+# ============================================================================
+# You are given two non-empty linked lists representing two non-negative 
+# integers. The digits are stored in reverse order, and each node contains 
+# a single digit. Add the two numbers and return the sum as a linked list.
+# Example: l1 = [2,4,3], l2 = [5,6,4]  =>  Output: [7,0,8] (342 + 465 = 807)
+# ============================================================================
+
+def addTwoNumbers(l1, l2):
+    """
+    Simulate elementary school addition with carry:
+    - Process both lists digit by digit from least significant digit
+    - Keep track of carry (0 or 1)
+    - Create new nodes for the result
+    
+    Key insight: The lists are already in reverse order (least significant 
+    digit first), which makes addition straightforward.
+    
+    Edge cases to handle:
+    - Lists of different lengths
+    - Final carry after processing all digits (e.g., 99 + 1 = 100)
+    
+    Time: O(max(m, n)) where m, n are lengths of the lists
+    Space: O(max(m, n)) for the result list
+    """
+    dummy = ListNode(0)
+    current = dummy
+    carry = 0
+    
+    # Process both lists until both are exhausted AND no carry remains
+    while l1 or l2 or carry:
+        # Get values from current nodes (0 if list is exhausted)
+        val1 = l1.val if l1 else 0
+        val2 = l2.val if l2 else 0
+        
+        # Calculate sum and new carry
+        total = val1 + val2 + carry
+        carry = total // 10
+        digit = total % 10
+        
+        # Create new node with the digit
+        current.next = ListNode(digit)
+        current = current.next
+        
+        # Move to next nodes if they exist
+        l1 = l1.next if l1 else None
+        l2 = l2.next if l2 else None
+    
+    return dummy.next
+
+
+# ============================================================================
+# HELPER FUNCTIONS FOR TESTING
+# ============================================================================
+
+def create_linked_list(values):
+    """Create a linked list from a list of values."""
+    if not values:
+        return None
+    head = ListNode(values[0])
+    current = head
+    for val in values[1:]:
+        current.next = ListNode(val)
+        current = current.next
+    return head
+
+
+def create_cyclic_list(values, pos):
+    """Create a linked list with a cycle at position pos."""
+    if not values or pos < -1 or pos >= len(values):
+        return create_linked_list(values)
+    
+    head = ListNode(values[0])
+    current = head
+    cycle_node = head if pos == 0 else None
+    
+    for i, val in enumerate(values[1:], 1):
+        current.next = ListNode(val)
+        current = current.next
+        if i == pos:
+            cycle_node = current
+    
+    if cycle_node:
+        current.next = cycle_node
+    
+    return head
+
+
+def linked_list_to_list(head, max_len=20):
+    """Convert linked list to Python list (with cycle protection)."""
+    result = []
+    seen = set()
+    current = head
+    while current and len(result) < max_len:
+        if id(current) in seen:
+            break
+        seen.add(id(current))
+        result.append(current.val)
+        current = current.next
+    return result
+
+
+# ============================================================================
+# TEST CASES
+# ============================================================================
+
+print("=" * 70)
+print("PROBLEM 19: Remove Nth Node From End")
+print("=" * 70)
+
+# Test 1: Remove 2nd from end
+head1 = create_linked_list([1, 2, 3, 4, 5])
+result1 = removeNthFromEnd(head1, 2)
+print(f"Test 1: [1,2,3,4,5], n=2 => {linked_list_to_list(result1)}")
+
+# Test 2: Remove only node
+head2 = create_linked_list([1])
+result2 = removeNthFromEnd(head2, 1)
+print(f"Test 2: [1], n=1 => {linked_list_to_list(result2)}")
+
+# Test 3: Remove first node (head)
+head3 = create_linked_list([1, 2])
+result3 = removeNthFromEnd(head3, 2)
+print(f"Test 3: [1,2], n=2 => {linked_list_to_list(result3)}")
+
+print("\n" + "=" * 70)
+print("PROBLEM 142: Linked List Cycle II")
+print("=" * 70)
+
+# Test 1: Cycle at position 1
+head4 = create_cyclic_list([3, 2, 0, -4], 1)
+result4 = detectCycle(head4)
+print(f"Test 1: [3,2,0,-4], pos=1 => Cycle starts at node with value: {result4.val if result4 else None}")
+
+# Test 2: Cycle at position 0
+head5 = create_cyclic_list([1, 2], 0)
+result5 = detectCycle(head5)
+print(f"Test 2: [1,2], pos=0 => Cycle starts at node with value: {result5.val if result5 else None}")
+
+# Test 3: No cycle
+head6 = create_cyclic_list([1], -1)
+result6 = detectCycle(head6)
+print(f"Test 3: [1], no cycle => {result6}")
+
+print("\n" + "=" * 70)
+print("PROBLEM 2: Add Two Numbers")
+print("=" * 70)
+
+# Test 1: Basic addition
+l1_1 = create_linked_list([2, 4, 3])
+l2_1 = create_linked_list([5, 6, 4])
+result7 = addTwoNumbers(l1_1, l2_1)
+print(f"Test 1: [2,4,3] + [5,6,4] => {linked_list_to_list(result7)} (342 + 465 = 807)")
+
+# Test 2: Different lengths
+l1_2 = create_linked_list([0])
+l2_2 = create_linked_list([0])
+result8 = addTwoNumbers(l1_2, l2_2)
+print(f"Test 2: [0] + [0] => {linked_list_to_list(result8)}")
+
+# Test 3: With carry overflow
+l1_3 = create_linked_list([9, 9, 9, 9, 9, 9, 9])
+l2_3 = create_linked_list([9, 9, 9, 9])
+result9 = addTwoNumbers(l1_3, l2_3)
+print(f"Test 3: [9,9,9,9,9,9,9] + [9,9,9,9] => {linked_list_to_list(result9)}")
+print(f"        (9999999 + 9999 = 10009998)")
+
+print("\n" + "=" * 70)
