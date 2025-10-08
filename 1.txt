@@ -1,0 +1,420 @@
+I'll create a comprehensive Python file with all three LeetCode problems, including clear explanations, pedagogical solutions, and test cases.I've created a comprehensive Python file with all three LeetCode problems, featuring:
+
+## Key Highlights:
+
+### **Problem 417: Pacific Atlantic Water Flow**
+- **Approach**: Reverse flow DFS (start from oceans, flow uphill)
+- **Key Insight**: Instead of checking each cell → oceans, we check oceans → cells
+- **Complexity**: O(m×n) time, O(m×n) space
+- **Pedagogical Focus**: Explains why reverse search is more efficient
+
+### **Problem 148: Sort List**
+- **Approach**: Merge sort (optimal for linked lists)
+- **Key Technique**: Slow/fast pointer to find middle
+- **Complexity**: O(n log n) time, O(log n) space (recursion)
+- **Pedagogical Focus**: Shows why merge sort is perfect for linked lists
+
+### **Problem 143: Reorder List**
+- **Approach**: Three-step process (find middle → reverse → merge)
+- **Key Insight**: Reversing second half lets us access "ends" simultaneously
+- **Complexity**: O(n) time, O(1) space
+- **Pedagogical Focus**: Breaks down the pattern into reusable components
+
+Each solution includes:
+✓ Complete problem statement
+✓ Detailed algorithmic explanations
+✓ Step-by-step comments
+✓ Multiple test cases
+✓ Helper functions for testing
+
+Run the file to see all test cases executed!
+
+"""
+LeetCode Solutions: Problems 417, 148, 143
+Author: Educational Solutions with Detailed Explanations
+"""
+
+from typing import List, Optional
+
+# ==============================================================================
+# Problem 417: Pacific Atlantic Water Flow
+# ==============================================================================
+"""
+PROBLEM STATEMENT:
+Given an m x n matrix of non-negative integers representing the height of each 
+unit cell in a continent, the "Pacific ocean" touches the left and top edges, 
+and the "Atlantic ocean" touches the right and bottom edges.
+
+Water can only flow in four directions (up, down, left, or right) from a cell 
+to another one with height equal or lower.
+
+Find the list of grid coordinates where water can flow to both the Pacific and 
+Atlantic oceans.
+
+APPROACH:
+Instead of checking from each cell if water can reach both oceans (which would 
+be inefficient), we use a REVERSE FLOW approach:
+1. Start from Pacific ocean borders and find all cells that can reach Pacific
+2. Start from Atlantic ocean borders and find all cells that can reach Atlantic
+3. Find intersection of both sets - these cells can reach BOTH oceans
+
+KEY INSIGHT: If water can flow FROM cell A TO cell B (A higher/equal to B),
+then we can also flow FROM B TO A in our reverse search (going uphill/equal).
+"""
+
+def pacificAtlantic(heights: List[List[int]]) -> List[List[int]]:
+    if not heights or not heights[0]:
+        return []
+    
+    m, n = len(heights), len(heights[0])
+    
+    # Sets to track cells reachable from each ocean
+    pacific_reachable = set()
+    atlantic_reachable = set()
+    
+    def dfs(r, c, reachable, prev_height):
+        """
+        DFS to find all cells reachable from ocean borders.
+        
+        ALGORITHMIC EXPLANATION:
+        - We can only visit a cell if current height >= prev_height
+        - This ensures water can flow from current cell back to ocean
+        - We mark cell as reachable and explore neighbors going "uphill"
+        """
+        # Boundary checks and visited check
+        if (r < 0 or r >= m or c < 0 or c >= n or 
+            (r, c) in reachable or heights[r][c] < prev_height):
+            return
+        
+        reachable.add((r, c))
+        
+        # Explore all 4 directions
+        for dr, dc in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+            dfs(r + dr, c + dc, reachable, heights[r][c])
+    
+    # Start DFS from Pacific borders (top row and left column)
+    for i in range(m):
+        dfs(i, 0, pacific_reachable, heights[i][0])  # Left column
+    for j in range(n):
+        dfs(0, j, pacific_reachable, heights[0][j])  # Top row
+    
+    # Start DFS from Atlantic borders (bottom row and right column)
+    for i in range(m):
+        dfs(i, n-1, atlantic_reachable, heights[i][n-1])  # Right column
+    for j in range(n):
+        dfs(m-1, j, atlantic_reachable, heights[m-1][j])  # Bottom row
+    
+    # Return intersection: cells reachable from both oceans
+    return list(pacific_reachable & atlantic_reachable)
+
+
+# ==============================================================================
+# Problem 148: Sort List
+# ==============================================================================
+"""
+PROBLEM STATEMENT:
+Given the head of a linked list, return the list after sorting it in ascending 
+order.
+
+Follow up: Can you sort the linked list in O(n log n) time and O(1) space?
+
+APPROACH: Merge Sort (Best for Linked Lists)
+Merge sort is ideal because:
+- Time: O(n log n) - optimal comparison-based sorting
+- Space: O(1) for iterative version (excluding recursion stack)
+- Works well with linked lists (no random access needed)
+
+ALGORITHM STEPS:
+1. Split list into two halves using slow/fast pointer technique
+2. Recursively sort each half
+3. Merge two sorted halves
+
+KEY TECHNIQUES:
+- Finding middle: slow/fast pointer (slow moves 1, fast moves 2)
+- Merging: similar to merging two sorted arrays
+"""
+
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+
+def sortList(head: Optional[ListNode]) -> Optional[ListNode]:
+    # Base case: empty list or single node
+    if not head or not head.next:
+        return head
+    
+    # Step 1: Find middle using slow/fast pointer technique
+    # EXPLANATION: When fast reaches end, slow is at middle
+    # We need prev to split the list (set prev.next = None)
+    prev, slow, fast = None, head, head
+    while fast and fast.next:
+        prev = slow
+        slow = slow.next
+        fast = fast.next.next
+    
+    # Split list into two halves
+    prev.next = None  # Cut the list at middle
+    
+    # Step 2: Recursively sort both halves
+    left = sortList(head)
+    right = sortList(slow)
+    
+    # Step 3: Merge sorted halves
+    return merge(left, right)
+
+def merge(l1: Optional[ListNode], l2: Optional[ListNode]) -> Optional[ListNode]:
+    """
+    Merge two sorted linked lists.
+    
+    ALGORITHMIC EXPLANATION:
+    - Use dummy node to simplify edge cases
+    - Compare heads of both lists, append smaller one
+    - Move pointer in the list from which we took the node
+    - After loop, append remaining nodes from non-empty list
+    """
+    dummy = ListNode(0)
+    curr = dummy
+    
+    while l1 and l2:
+        if l1.val <= l2.val:
+            curr.next = l1
+            l1 = l1.next
+        else:
+            curr.next = l2
+            l2 = l2.next
+        curr = curr.next
+    
+    # Append remaining nodes (at most one list has remaining nodes)
+    curr.next = l1 if l1 else l2
+    
+    return dummy.next
+
+
+# ==============================================================================
+# Problem 143: Reorder List
+# ==============================================================================
+"""
+PROBLEM STATEMENT:
+Given a singly linked list L: L0 → L1 → ... → Ln-1 → Ln,
+reorder it to: L0 → Ln → L1 → Ln-1 → L2 → Ln-2 → ...
+
+You must do this in-place without modifying the node values.
+
+APPROACH: Three-Step Process
+1. Find middle of list (slow/fast pointers)
+2. Reverse second half of list
+3. Merge two halves alternately
+
+EXAMPLE WALKTHROUGH:
+Input:  1 → 2 → 3 → 4 → 5
+Step 1: Split: 1 → 2 → 3  and  4 → 5
+Step 2: Reverse second: 1 → 2 → 3  and  5 → 4
+Step 3: Merge: 1 → 5 → 2 → 4 → 3
+
+KEY INSIGHT: By reversing second half, we can easily access both the "first" 
+and "last" elements simultaneously while traversing.
+"""
+
+def reorderList(head: Optional[ListNode]) -> None:
+    """
+    Modify list in-place. Do not return anything.
+    """
+    if not head or not head.next:
+        return
+    
+    # Step 1: Find middle using slow/fast pointer
+    # After loop, slow will be at the START of second half
+    slow, fast = head, head
+    while fast.next and fast.next.next:
+        slow = slow.next
+        fast = fast.next.next
+    
+    # Step 2: Reverse second half
+    # EXPLANATION: We reverse starting from slow.next
+    # After reversal, second points to new head of reversed half
+    second = slow.next
+    slow.next = None  # Split the list
+    second = reverseList(second)
+    
+    # Step 3: Merge two halves alternately
+    # ALGORITHMIC EXPLANATION:
+    # - Take one node from first half
+    # - Take one node from second half
+    # - Repeat until second half is exhausted
+    # - First half may have one extra node (handled naturally)
+    first = head
+    while second:
+        # Save next pointers
+        tmp1, tmp2 = first.next, second.next
+        
+        # Reorder: first → second → (rest)
+        first.next = second
+        second.next = tmp1
+        
+        # Move pointers forward
+        first = tmp1
+        second = tmp2
+
+def reverseList(head: Optional[ListNode]) -> Optional[ListNode]:
+    """
+    Reverse a linked list iteratively.
+    
+    ALGORITHMIC EXPLANATION:
+    - Maintain three pointers: prev, curr, next
+    - At each step: reverse curr's pointer, then advance all pointers
+    """
+    prev, curr = None, head
+    while curr:
+        next_temp = curr.next  # Save next node
+        curr.next = prev       # Reverse pointer
+        prev = curr            # Move prev forward
+        curr = next_temp       # Move curr forward
+    return prev
+
+
+# ==============================================================================
+# HELPER FUNCTIONS FOR TESTING
+# ==============================================================================
+
+def create_linked_list(values: List[int]) -> Optional[ListNode]:
+    """Create a linked list from a list of values."""
+    if not values:
+        return None
+    head = ListNode(values[0])
+    curr = head
+    for val in values[1:]:
+        curr.next = ListNode(val)
+        curr = curr.next
+    return head
+
+def linked_list_to_list(head: Optional[ListNode]) -> List[int]:
+    """Convert linked list to Python list for easy comparison."""
+    result = []
+    curr = head
+    while curr:
+        result.append(curr.val)
+        curr = curr.next
+    return result
+
+
+# ==============================================================================
+# TEST CASES
+# ==============================================================================
+
+def test_pacific_atlantic():
+    print("=" * 70)
+    print("Testing Problem 417: Pacific Atlantic Water Flow")
+    print("=" * 70)
+    
+    # Test case 1
+    heights1 = [
+        [1, 2, 2, 3, 5],
+        [3, 2, 3, 4, 4],
+        [2, 4, 5, 3, 1],
+        [6, 7, 1, 4, 5],
+        [5, 1, 1, 2, 4]
+    ]
+    result1 = pacificAtlantic(heights1)
+    print(f"Test 1:")
+    print(f"Input matrix dimensions: {len(heights1)}x{len(heights1[0])}")
+    print(f"Cells reaching both oceans: {sorted(result1)}")
+    print(f"Expected: [[0,4],[1,3],[1,4],[2,2],[3,0],[3,1],[4,0]]")
+    print()
+    
+    # Test case 2
+    heights2 = [[1]]
+    result2 = pacificAtlantic(heights2)
+    print(f"Test 2:")
+    print(f"Input: {heights2}")
+    print(f"Result: {result2}")
+    print(f"Expected: [[0,0]]")
+    print()
+
+def test_sort_list():
+    print("=" * 70)
+    print("Testing Problem 148: Sort List")
+    print("=" * 70)
+    
+    # Test case 1
+    head1 = create_linked_list([4, 2, 1, 3])
+    sorted1 = sortList(head1)
+    result1 = linked_list_to_list(sorted1)
+    print(f"Test 1:")
+    print(f"Input:  [4, 2, 1, 3]")
+    print(f"Output: {result1}")
+    print(f"Expected: [1, 2, 3, 4]")
+    print()
+    
+    # Test case 2
+    head2 = create_linked_list([-1, 5, 3, 4, 0])
+    sorted2 = sortList(head2)
+    result2 = linked_list_to_list(sorted2)
+    print(f"Test 2:")
+    print(f"Input:  [-1, 5, 3, 4, 0]")
+    print(f"Output: {result2}")
+    print(f"Expected: [-1, 0, 3, 4, 5]")
+    print()
+    
+    # Test case 3: Empty list
+    head3 = create_linked_list([])
+    sorted3 = sortList(head3)
+    result3 = linked_list_to_list(sorted3)
+    print(f"Test 3:")
+    print(f"Input:  []")
+    print(f"Output: {result3}")
+    print(f"Expected: []")
+    print()
+
+def test_reorder_list():
+    print("=" * 70)
+    print("Testing Problem 143: Reorder List")
+    print("=" * 70)
+    
+    # Test case 1
+    head1 = create_linked_list([1, 2, 3, 4])
+    reorderList(head1)
+    result1 = linked_list_to_list(head1)
+    print(f"Test 1:")
+    print(f"Input:  [1, 2, 3, 4]")
+    print(f"Output: {result1}")
+    print(f"Expected: [1, 4, 2, 3]")
+    print()
+    
+    # Test case 2
+    head2 = create_linked_list([1, 2, 3, 4, 5])
+    reorderList(head2)
+    result2 = linked_list_to_list(head2)
+    print(f"Test 2:")
+    print(f"Input:  [1, 2, 3, 4, 5]")
+    print(f"Output: {result2}")
+    print(f"Expected: [1, 5, 2, 4, 3]")
+    print()
+    
+    # Test case 3: Two nodes
+    head3 = create_linked_list([1, 2])
+    reorderList(head3)
+    result3 = linked_list_to_list(head3)
+    print(f"Test 3:")
+    print(f"Input:  [1, 2]")
+    print(f"Output: {result3}")
+    print(f"Expected: [1, 2]")
+    print()
+
+
+# ==============================================================================
+# MAIN EXECUTION
+# ==============================================================================
+
+if __name__ == "__main__":
+    print("\n" + "=" * 70)
+    print("LEETCODE PROBLEMS: 417, 148, 143 - COMPREHENSIVE SOLUTIONS")
+    print("=" * 70 + "\n")
+    
+    test_pacific_atlantic()
+    test_sort_list()
+    test_reorder_list()
+    
+    print("=" * 70)
+    print("All tests completed!")
+    print("=" * 70)
