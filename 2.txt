@@ -1,0 +1,369 @@
+I've created a comprehensive Python file with all three graph problems. Here's what makes this solution pedagogically effective:
+
+**Key Features:**
+
+1. **Problem Explanations**: Each problem begins with a clear statement of what needs to be solved, followed by the algorithm explanation.
+
+2. **Algorithm Clarity**: The most algorithmically unclear parts are highlighted:
+   - **Problem 261**: Why cycle detection works with Union-Find (when two nodes share a root, adding an edge creates a cycle)
+   - **Problem 200**: How marking visited cells as '0' avoids revisiting them without extra data structures
+   - **Problem 323**: Why counting remaining roots gives the number of components
+
+3. **Efficient Implementations**:
+   - Problem 261 uses Union-Find with rank optimization (nearly O(1) per operation)
+   - Problem 200 uses DFS with in-place modification
+   - Problem 323 shows both Union-Find and DFS approaches for comparison
+
+4. **Comprehensive Testing**: Each problem includes 4-6 test cases covering edge cases (single nodes, disconnected components, cycles, etc.) with clear descriptions.
+
+5. **Code Comments**: Inline comments explain the logic without being verbose, and complexity analysis is provided (time and space).
+
+The file runs all tests immediately when executed, showing results with checkmarks for passed tests. You can copy and run this directly in any Python environment!
+"""
+Graph Problems: Valid Tree, Number of Islands, Connected Components
+Three efficient solutions with detailed explanations and test cases.
+"""
+
+
+# ============================================================================
+# PROBLEM 261: GRAPH VALID TREE
+# ============================================================================
+"""
+PROBLEM STATEMENT:
+Given n nodes labeled from 0 to n-1 and a list of undirected edges,
+determine if these edges form a valid tree.
+
+A valid tree must satisfy:
+1. Have exactly n-1 edges (necessary for n nodes)
+2. Be connected (all nodes reachable from any node)
+3. Have no cycles (every edge connects two previously unconnected components)
+
+ALGORITHM: Union-Find (Disjoint Set Union)
+- Track connected components using a parent array
+- For each edge, check if both nodes are already connected
+- If yes, adding the edge would create a cycle (invalid)
+- If no, union them into the same component
+- At the end, verify exactly one connected component exists
+"""
+
+class UnionFind:
+    """Union-Find data structure for cycle detection and connectivity."""
+    
+    def __init__(self, n):
+        self.parent = list(range(n))
+        self.rank = [0] * n
+    
+    def find(self, x):
+        """Find root parent with path compression."""
+        if self.parent[x] != x:
+            self.parent[x] = self.find(self.parent[x])
+        return self.parent[x]
+    
+    def union(self, x, y):
+        """Union two sets. Returns False if already in same set (cycle detected)."""
+        root_x, root_y = self.find(x), self.find(y)
+        
+        if root_x == root_y:
+            return False  # Already connected: cycle detected
+        
+        # Union by rank optimization
+        if self.rank[root_x] < self.rank[root_y]:
+            self.parent[root_x] = root_y
+        elif self.rank[root_x] > self.rank[root_y]:
+            self.parent[root_y] = root_x
+        else:
+            self.parent[root_y] = root_x
+            self.rank[root_x] += 1
+        
+        return True  # Successfully connected
+
+
+def validTree(n, edges):
+    """
+    Determine if the given edges form a valid tree.
+    
+    Time: O(n + e * α(n)) where α is inverse Ackermann (nearly constant)
+    Space: O(n) for parent and rank arrays
+    """
+    # Quick validation: a tree with n nodes must have exactly n-1 edges
+    if len(edges) != n - 1:
+        return False
+    
+    uf = UnionFind(n)
+    
+    # Process each edge
+    for u, v in edges:
+        # If union fails, it means u and v were already connected (cycle detected)
+        if not uf.union(u, v):
+            return False
+    
+    return True
+
+
+# Test cases for Problem 261
+print("=" * 70)
+print("PROBLEM 261: GRAPH VALID TREE")
+print("=" * 70)
+
+test_cases_261 = [
+    # (n, edges, expected_output, description)
+    (5, [[0, 1], [0, 2], [0, 3], [1, 4]], True, "Valid tree: linear chain from node 0"),
+    (5, [[0, 1], [1, 2], [2, 3], [1, 3], [1, 4]], False, "Cycle present: 1-2-3-1"),
+    (2, [[0, 1]], True, "Minimal valid tree: 2 nodes, 1 edge"),
+    (3, [[0, 1]], False, "Not connected: missing edge for node 2"),
+    (4, [[0, 1], [2, 3]], False, "Two disconnected components"),
+    (1, [], True, "Single node: valid tree"),
+]
+
+for n, edges, expected, desc in test_cases_261:
+    result = validTree(n, edges)
+    status = "✓" if result == expected else "✗"
+    print(f"{status} n={n}, edges={edges}")
+    print(f"  Expected: {expected}, Got: {result} | {desc}\n")
+
+
+# ============================================================================
+# PROBLEM 200: NUMBER OF ISLANDS
+# ============================================================================
+"""
+PROBLEM STATEMENT:
+Given a 2D grid of '1's (land) and '0's (water), count the number of islands.
+An island is formed by connecting adjacent lands horizontally or vertically.
+
+ALGORITHM: Depth-First Search (DFS)
+- Iterate through each cell in the grid
+- When we find a '1', increment island counter and perform DFS
+- DFS marks all connected '1's as visited (convert to '0')
+- This explores each island completely before moving to the next
+
+KEY INSIGHT: By marking visited cells as '0', we avoid revisiting them.
+This is simpler than maintaining a separate visited set and works because
+we only need one pass through the grid.
+"""
+
+def numIslands(grid):
+    """
+    Count the number of islands in the grid.
+    
+    Time: O(rows * cols) - each cell visited at most twice
+    Space: O(rows * cols) - recursion stack in worst case
+    """
+    if not grid or not grid[0]:
+        return 0
+    
+    rows, cols = len(grid), len(grid[0])
+    island_count = 0
+    
+    def dfs(r, c):
+        """Explore all connected land cells and mark as visited."""
+        # Boundary check and water check
+        if r < 0 or r >= rows or c < 0 or c >= cols or grid[r][c] == '0':
+            return
+        
+        # Mark current cell as visited
+        grid[r][c] = '0'
+        
+        # Explore all 4 directions: up, down, left, right
+        dfs(r - 1, c)  # up
+        dfs(r + 1, c)  # down
+        dfs(r, c - 1)  # left
+        dfs(r, c + 1)  # right
+    
+    # Find all islands
+    for r in range(rows):
+        for c in range(cols):
+            if grid[r][c] == '1':
+                island_count += 1
+                dfs(r, c)
+    
+    return island_count
+
+
+# Test cases for Problem 200
+print("=" * 70)
+print("PROBLEM 200: NUMBER OF ISLANDS")
+print("=" * 70)
+
+test_cases_200 = [
+    (
+        [
+            ["1", "1", "0", "0", "0"],
+            ["1", "1", "0", "0", "0"],
+            ["0", "0", "1", "0", "0"],
+            ["0", "0", "0", "1", "1"]
+        ],
+        3,
+        "Three islands: top-left, middle, bottom-right"
+    ),
+    (
+        [
+            ["1", "1", "1", "1", "0"],
+            ["1", "1", "0", "1", "0"],
+            ["1", "1", "0", "0", "0"],
+            ["0", "0", "0", "0", "0"]
+        ],
+        1,
+        "One island (disconnected '1' in middle is adjacent to main island)"
+    ),
+    (
+        [["1"]],
+        1,
+        "Single cell with land"
+    ),
+    (
+        [["0"]],
+        0,
+        "Single cell with water"
+    ),
+    (
+        [["1", "0"], ["0", "1"]],
+        2,
+        "Two diagonal islands (not adjacent)"
+    ),
+]
+
+for grid, expected, desc in test_cases_200:
+    # Create a copy to avoid modifying original
+    grid_copy = [row[:] for row in grid]
+    result = numIslands(grid_copy)
+    status = "✓" if result == expected else "✗"
+    print(f"{status} Expected: {expected}, Got: {result}")
+    print(f"  {desc}\n")
+
+
+# ============================================================================
+# PROBLEM 323: NUMBER OF CONNECTED COMPONENTS IN UNDIRECTED GRAPH
+# ============================================================================
+"""
+PROBLEM STATEMENT:
+Given n nodes (labeled 0 to n-1) and a list of undirected edges,
+count the number of connected components in the graph.
+
+ALGORITHM: Union-Find (Disjoint Set Union)
+- Initialize each node as its own component
+- For each edge, union the two nodes
+- Count remaining distinct roots (components)
+
+KEY INSIGHT: After processing all edges, the number of distinct roots
+equals the number of connected components. This is because each connected
+component will have exactly one root (via path compression).
+"""
+
+class UnionFindSimple:
+    """Simplified Union-Find for counting connected components."""
+    
+    def __init__(self, n):
+        self.parent = list(range(n))
+        self.components = n
+    
+    def find(self, x):
+        """Find root with path compression."""
+        if self.parent[x] != x:
+            self.parent[x] = self.find(self.parent[x])
+        return self.parent[x]
+    
+    def union(self, x, y):
+        """Union two sets if not already connected."""
+        root_x, root_y = self.find(x), self.find(y)
+        
+        if root_x != root_y:
+            self.parent[root_x] = root_y
+            self.components -= 1
+
+
+def countComponents(n, edges):
+    """
+    Count connected components using Union-Find.
+    
+    Time: O(n + e * α(n)) where α is inverse Ackermann
+    Space: O(n) for parent array
+    """
+    uf = UnionFindSimple(n)
+    
+    # Process each edge to merge components
+    for u, v in edges:
+        uf.union(u, v)
+    
+    return uf.components
+
+
+# Alternative solution using DFS (for comparison)
+def countComponentsDFS(n, edges):
+    """
+    Count connected components using DFS.
+    
+    Time: O(n + e)
+    Space: O(n + e) for adjacency list and recursion stack
+    """
+    # Build adjacency list
+    graph = [[] for _ in range(n)]
+    for u, v in edges:
+        graph[u].append(v)
+        graph[v].append(u)
+    
+    visited = [False] * n
+    components = 0
+    
+    def dfs(node):
+        """Explore all connected nodes."""
+        visited[node] = True
+        for neighbor in graph[node]:
+            if not visited[neighbor]:
+                dfs(neighbor)
+    
+    # Find all components
+    for i in range(n):
+        if not visited[i]:
+            components += 1
+            dfs(i)
+    
+    return components
+
+
+# Test cases for Problem 323
+print("=" * 70)
+print("PROBLEM 323: NUMBER OF CONNECTED COMPONENTS")
+print("=" * 70)
+
+test_cases_323 = [
+    (5, [[0, 1], [1, 2], [3, 4]], 2, "Two components: {0,1,2} and {3,4}"),
+    (5, [[0, 1], [0, 2], [1, 2], [3, 4]], 2, "Two components: fully connected {0,1,2} and {3,4}"),
+    (3, [[0, 1], [1, 2]], 1, "One component: all connected"),
+    (1, [], 1, "Single node: one component"),
+    (4, [], 4, "Four isolated nodes: four components"),
+    (6, [[0, 1], [2, 3], [4, 5]], 3, "Three separate pairs"),
+]
+
+for n, edges, expected, desc in test_cases_323:
+    result_uf = countComponents(n, edges)
+    result_dfs = countComponentsDFS(n, edges)
+    status_uf = "✓" if result_uf == expected else "✗"
+    status_dfs = "✓" if result_dfs == expected else "✗"
+    
+    print(f"{status_uf} Union-Find: Expected: {expected}, Got: {result_uf}")
+    print(f"{status_dfs} DFS:       Expected: {expected}, Got: {result_dfs}")
+    print(f"  {desc}\n")
+
+
+# ============================================================================
+# SUMMARY
+# ============================================================================
+print("=" * 70)
+print("ALGORITHM SUMMARY")
+print("=" * 70)
+print("""
+261 - Valid Tree:
+  • Union-Find approach efficiently detects cycles
+  • Key: if two nodes already have same root, adding edge creates cycle
+  • Must verify: edges == n-1 and all nodes in one component
+
+200 - Number of Islands:
+  • DFS marks all connected land cells in one pass
+  • Key: modify grid in-place by marking visited cells as '0'
+  • Explores 4 directions (up, down, left, right) for connectivity
+
+323 - Connected Components:
+  • Union-Find efficiently tracks component merging
+  • Key: components decrease by 1 each time we merge different sets
+  • Alternative DFS approach builds explicit adjacency list
+""")
